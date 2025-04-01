@@ -7,7 +7,7 @@ import io
 import csv
 
 # ---- Settings ----
-KERF = 0.125  # Default kerf in inches
+DEFAULT_KERF = 0.125  # Saw blade thickness in inches
 
 # ---- Helper Functions ----
 
@@ -18,9 +18,21 @@ def generate_required_pieces(required_df):
             pieces.append({
                 'length': float(row['Length']),
                 'width': float(row['Width']),
-                'id': f"{float(row['Length'])}x{float(row['Width'])}"
+                'id': f"{float(row['Length']):.2f}x{float(row['Width']):.2f}"
             })
     return sorted(pieces, key=lambda x: max(x['length'], x['width']), reverse=True)
+
+
+def expand_boards_by_quantity(boards_df):
+    expanded = []
+    for _, row in boards_df.iterrows():
+        for _ in range(int(row['Quantity'])):
+            expanded.append({
+                'length': float(row['Length']),
+                'width': float(row['Width'])
+            })
+    return expanded
+
 
 def try_place_pieces(board, pieces, kerf):
     placements = []
@@ -66,22 +78,21 @@ def try_place_pieces(board, pieces, kerf):
     return placements, remaining
 
 
-def fit_pieces_to_boards(boards_df, required_df, kerf):
+def fit_pieces_to_boards(boards_list, required_df, kerf):
     pieces = generate_required_pieces(required_df)
     cut_plan = []
     board_id = 1
 
-    for _, board in boards_df.iterrows():
-        board_data = {'length': float(board['Length']), 'width': float(board['Width'])}
-        placements, pieces = try_place_pieces(board_data, pieces, kerf)
+    for board in boards_list:
+        placements, pieces = try_place_pieces(board, pieces, kerf)
 
         used_area = sum(p['length'] * p['width'] for p in placements)
-        total_area = board_data['length'] * board_data['width']
+        total_area = board['length'] * board['width']
         waste_area = total_area - used_area
 
         cut_plan.append({
             'board_id': board_id,
-            'board': board_data,
+            'board': board,
             'cuts': placements,
             'waste_area': waste_area
         })
@@ -140,8 +151,8 @@ def generate_csv(cut_plan):
             writer.writerow([
                 board['board_id'],
                 cut['piece']['id'],
-                cut['length'],
-                cut['width'],
+                f"{cut['length']:.2f}",
+                f"{cut['width']:.2f}",
                 cut['rotated'],
                 round(cut['x'], 2),
                 round(cut['y'], 2)
@@ -149,18 +160,17 @@ def generate_csv(cut_plan):
     output.seek(0)
     return output.getvalue()
 
-
 # ---- Streamlit App ----
 
-st.title("🪚 Wood Cutting Optimizer (Imperial)")
+st.title("🪚 Wood Cutting Optimizer (Imperial Units)")
 
 st.sidebar.header("Settings")
-kerf = st.sidebar.number_input("Kerf (inches)", value=0.125, step=0.01)
+kerf = st.sidebar.number_input("Kerf (inches)", value=DEFAULT_KERF, step=0.01)
 
 st.header("1. Enter Available Boards")
 default_boards = pd.DataFrame([
-    {"Length": 96.0, "Width": 48.0},
-    {"Length": 96.0, "Width": 48.0},
+    {"Length": 96.0, "Width": 48.0, "Quantity": 2},
+    {"Length": 48.0, "Width": 24.0, "Quantity": 1},
 ], dtype=float)
 boards_df = st.data_editor(default_boards, num_rows="dynamic", key="boards")
 
@@ -173,7 +183,8 @@ default_required = pd.DataFrame([
 required_df = st.data_editor(default_required, num_rows="dynamic", key="required")
 
 if st.button("🧠 Optimize Cut Plan"):
-    cut_plan, leftovers = fit_pieces_to_boards(boards_df, required_df, kerf)
+    expanded_boards = expand_boards_by_quantity(boards_df)
+    cut_plan, leftovers = fit_pieces_to_boards(expanded_boards, required_df, kerf)
 
     st.subheader("📋 Cut Plan Preview")
     for board in cut_plan:
@@ -207,9 +218,7 @@ if st.button("🧠 Optimize Cut Plan"):
     csv_string = generate_csv(cut_plan)
     st.download_button("📄 Download CSV", data=csv_string, file_name="cut_plan.csv", mime="text/csv")
 
-    # Leftovers
     if leftovers:
         st.warning("⚠️ Some pieces couldn't be placed:")
         for piece in leftovers:
             st.text(f"- {piece['length']}\" x {piece['width']}\"")
-
