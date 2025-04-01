@@ -18,10 +18,9 @@ def generate_required_pieces(required_df):
             pieces.append({
                 'length': float(row['Length']),
                 'width': float(row['Width']),
-                'id': f"{row['Length']}x{row['Width']}"
+                'id': f"{float(row['Length'])}x{float(row['Width'])}"
             })
     return sorted(pieces, key=lambda x: max(x['length'], x['width']), reverse=True)
-
 
 def try_place_pieces(board, pieces, kerf):
     placements = []
@@ -160,17 +159,17 @@ kerf = st.sidebar.number_input("Kerf (inches)", value=0.125, step=0.01)
 
 st.header("1. Enter Available Boards")
 default_boards = pd.DataFrame([
-    {"Length": 96, "Width": 48},
-    {"Length": 96, "Width": 48},
-])
+    {"Length": 96.0, "Width": 48.0},
+    {"Length": 96.0, "Width": 48.0},
+], dtype=float)
 boards_df = st.data_editor(default_boards, num_rows="dynamic", key="boards")
 
 st.header("2. Enter Required Pieces")
 default_required = pd.DataFrame([
-    {"Length": 24, "Width": 24, "Quantity": 3},
-    {"Length": 18, "Width": 18, "Quantity": 4},
-    {"Length": 12, "Width": 12, "Quantity": 6},
-])
+    {"Length": 24.0, "Width": 24.0, "Quantity": 3},
+    {"Length": 18.5, "Width": 18.0, "Quantity": 4},
+    {"Length": 12.25, "Width": 12.25, "Quantity": 6},
+], dtype=float)
 required_df = st.data_editor(default_required, num_rows="dynamic", key="required")
 
 if st.button("🧠 Optimize Cut Plan"):
