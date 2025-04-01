@@ -185,7 +185,7 @@ def load_plan_from_json(json_data):
 
 # ---- Streamlit App ----
 
-st.title("🪚 Wood Cutting Optimizer (with Fractions, Save & Load)")
+st.title("🪚 Wood Cutting Optimizer")
 
 st.sidebar.header("Settings")
 kerf_input = st.sidebar.text_input("Kerf (inches)", value="0.125")
