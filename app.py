@@ -227,6 +227,14 @@ if st.button("✂️ Optimize Cuts"):
     boards_list = expand_boards_by_quantity(boards_df)
     cut_plan, leftovers = fit_pieces_to_boards(boards_list, required_df, kerf)
 
+    st.session_state.cut_plan = cut_plan
+    st.session_state.leftovers = leftovers
+    st.session_state.boards_df = boards_df
+    st.session_state.required_df = required_df
+
+    boards_list = expand_boards_by_quantity(boards_df)
+    cut_plan, leftovers = fit_pieces_to_boards(boards_list, required_df, kerf)
+
     total_bf = sum(
         calculate_board_feet(b['board']['length'], b['board']['width'], 1, thickness) for b in cut_plan
     )
@@ -248,9 +256,15 @@ st.subheader("💾 Save or Load Plan")
 col1, col2 = st.columns(2)
 
 with col1:
-    if st.button("💾 Save Plan as JSON"):
-        saved_json = save_plan_to_json(cut_plan, leftovers, boards_df, required_df)
+    if 'cut_plan' in st.session_state and st.button("💾 Save Plan as JSON"):
+        saved_json = save_plan_to_json(
+            st.session_state.cut_plan,
+            st.session_state.leftovers,
+            st.session_state.boards_df,
+            st.session_state.required_df
+        )
         st.download_button("📥 Download JSON", saved_json, file_name="cut_plan.json", mime="application/json")
+
 
 with col2:
     uploaded_file = st.file_uploader("📤 Load Plan from JSON", type=["json"])
