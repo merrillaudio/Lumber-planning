@@ -181,24 +181,6 @@ def generate_csv(cut_plan):
     output.seek(0)
     return output.getvalue()
 
-def save_plan_to_json(plan, leftovers, boards_df, required_df):
-    data = {
-        'cut_plan': plan,
-        'leftovers': leftovers,
-        'boards_input': boards_df.to_dict(orient='records'),
-        'required_input': required_df.to_dict(orient='records')
-    }
-    return json.dumps(data, indent=2)
-
-def load_plan_from_json(json_data):
-    data = json.loads(json_data)
-    return (
-        data['cut_plan'],
-        data.get('leftovers', []),
-        pd.DataFrame(data.get('boards_input', [])),
-        pd.DataFrame(data.get('required_input', [])),
-    )
-
 # ---- Streamlit App UI ----
 st.set_page_config(page_title="Lumber Cut Optimizer", layout="wide")
 st.title("📐 Lumber Cut Optimizer")
@@ -212,13 +194,13 @@ st.subheader("Available Lumber")
 def default_board_df():
     return pd.DataFrame([{"Length": "96", "Width": "12", "Quantity": 1}])
 
-boards_df = st.experimental_data_editor(default_board_df(), num_rows="dynamic", use_container_width=True)
+boards_df = st.data_editor(default_board_df(), num_rows="dynamic", use_container_width=True)
 
 st.subheader("Required Cuts")
 def default_cut_df():
     return pd.DataFrame([{"Length": "24", "Width": "6", "Quantity": 2}])
 
-required_df = st.experimental_data_editor(default_cut_df(), num_rows="dynamic", use_container_width=True)
+required_df = st.data_editor(default_cut_df(), num_rows="dynamic", use_container_width=True)
 
 if st.button("✂️ Optimize Cuts"):
     boards_list = expand_boards_by_quantity(boards_df)
