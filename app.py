@@ -198,3 +198,44 @@ def load_plan_from_json(json_data):
         pd.DataFrame(data.get('boards_input', [])),
         pd.DataFrame(data.get('required_input', [])),
     )
+
+# ---- Streamlit App UI ----
+st.set_page_config(page_title="Lumber Cut Optimizer", layout="wide")
+st.title("📐 Lumber Cut Optimizer")
+
+st.sidebar.header("Cut Settings")
+kerf = st.sidebar.number_input("Kerf Size (inches)", value=0.125, step=0.001, format="%.3f")
+thickness = st.sidebar.number_input("Board Thickness (inches)", value=0.75, step=0.01)
+cost_per_bf = st.sidebar.number_input("Cost per Board Foot ($)", value=5.00, step=0.01)
+
+st.subheader("Available Lumber")
+def default_board_df():
+    return pd.DataFrame([{"Length": "96", "Width": "12", "Quantity": 1}])
+
+boards_df = st.experimental_data_editor(default_board_df(), num_rows="dynamic", use_container_width=True)
+
+st.subheader("Required Cuts")
+def default_cut_df():
+    return pd.DataFrame([{"Length": "24", "Width": "6", "Quantity": 2}])
+
+required_df = st.experimental_data_editor(default_cut_df(), num_rows="dynamic", use_container_width=True)
+
+if st.button("✂️ Optimize Cuts"):
+    boards_list = expand_boards_by_quantity(boards_df)
+    cut_plan, leftovers = fit_pieces_to_boards(boards_list, required_df, kerf)
+
+    total_bf = sum(
+        calculate_board_feet(b['board']['length'], b['board']['width'], 1, thickness) for b in cut_plan
+    )
+    total_cost = total_bf * cost_per_bf
+
+    st.success(f"Optimization complete! 🧮 Total board feet: {total_bf:.2f}, Estimated Cost: ${total_cost:.2f}")
+
+    csv_data = generate_csv(cut_plan)
+    pdf_data = generate_pdf(cut_plan, leftovers)
+
+    st.download_button("📄 Download CSV", csv_data, file_name="cut_plan.csv", mime="text/csv")
+    st.download_button("📄 Download PDF", pdf_data, file_name="cut_plan.pdf")
+
+    if leftovers:
+        st.warning("Some pieces could not be placed. Check the PDF for suggestions.")
