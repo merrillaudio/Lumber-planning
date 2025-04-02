@@ -181,7 +181,6 @@ def generate_csv(cut_plan):
     output.seek(0)
     return output.getvalue()
 
-st.set_page_config(page_title="Lumber Cut Optimizer", layout="wide")
 
 # ---- Streamlit App UI ----
 def save_plan_to_json(plan, leftovers, boards_df, required_df):
