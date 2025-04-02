@@ -275,4 +275,4 @@ with col2:
         st.session_state.leftovers = leftovers
         st.session_state.boards_df = boards_df
         st.session_state.required_df = required_df
-        st.experimental_rerun()
+        st.rerun()
