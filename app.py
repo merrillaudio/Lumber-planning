@@ -271,4 +271,8 @@ with col2:
     if uploaded_file:
         content = uploaded_file.read().decode("utf-8")
         cut_plan, leftovers, boards_df, required_df = load_plan_from_json(content)
-        st.success("✅ Plan loaded from file. You can now re-run optimization or download results.")
+        st.session_state.cut_plan = cut_plan
+        st.session_state.leftovers = leftovers
+        st.session_state.boards_df = boards_df
+        st.session_state.required_df = required_df
+        st.experimental_rerun()
