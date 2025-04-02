@@ -118,8 +118,8 @@ def fit_pieces_to_boards(boards_list, required_df, kerf):
             break
     return cut_plan, pieces
 
-def generate_pdf(cut_plan):
-    buffer = io.BytesIO()
+def generate_pdf(cut_plan, leftovers=None):
+        buffer = io.BytesIO()
     with PdfPages(buffer) as pdf:
         for board in cut_plan:
             fig, ax = plt.subplots()
@@ -146,6 +146,20 @@ def generate_pdf(cut_plan):
             plt.gca().set_aspect('equal', adjustable='box')
             plt.xlabel("Inches")
             plt.ylabel("Inches")
+            pdf.savefig(fig)
+            plt.close(fig)
+
+        # If this is the last board, add leftover suggestion page
+        if leftovers:
+            fig, ax = plt.subplots()
+            ax.axis('off')
+            ax.set_title("Suggested Additional Pieces")
+            y = 1.0
+            ax.text(0, y, "The following pieces could not be placed:", fontsize=12, ha='left')
+            y -= 0.1
+            for piece in leftovers:
+                ax.text(0, y, f"- {piece['length']:.2f}\" x {piece['width']:.2f}\"", fontsize=10, ha='left')
+                y -= 0.05
             pdf.savefig(fig)
             plt.close(fig)
     buffer.seek(0)
@@ -284,7 +298,7 @@ if st.button("🧠 Optimize Cut Plan"):
         st.pyplot(fig)
 
     # Downloads
-    pdf_bytes = generate_pdf(cut_plan)
+    pdf_bytes = generate_pdf(cut_plan, leftovers)
     st.download_button("📄 Download PDF", data=pdf_bytes, file_name="cut_plan.pdf", mime="application/pdf")
 
     csv_string = generate_csv(cut_plan)
