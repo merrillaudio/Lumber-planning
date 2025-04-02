@@ -8,7 +8,7 @@ import csv
 import json
 from fractions import Fraction
 
-# ---- Helpers ----
+# ---- Helper Functions ----
 
 def parse_measurement(value):
     if isinstance(value, (int, float)):
@@ -23,6 +23,10 @@ def parse_measurement(value):
             return float(Fraction(parts[0]))
     except:
         return None
+
+def calculate_board_feet(length, width, quantity, thickness=0.75):
+    area = length * width * thickness
+    return (area * quantity) / 144
 
 def generate_required_pieces(required_df):
     pieces = []
@@ -185,16 +189,31 @@ def load_plan_from_json(json_data):
 
 # ---- Streamlit App ----
 
-st.title("🪚 Wood Cutting Optimizer")
+st.title("🪚 Wood Cutting Optimizer (with Fractions, Board Feet, Cost & Save/Load)")
 
 st.sidebar.header("Settings")
+
+# Kerf
 kerf_input = st.sidebar.text_input("Kerf (inches)", value="0.125")
 kerf = parse_measurement(kerf_input) or 0.125
 
+# Thickness selector
+thickness_options = [f"{i}/8" for i in range(0, 33)]
+thickness_label = st.sidebar.selectbox("Board Thickness (inches)", thickness_options, index=6)
+board_thickness = parse_measurement(thickness_label) or 0.75
+
+# Cost estimator
+price_input = st.sidebar.text_input("Price per Board Foot ($)", value="4.00")
+try:
+    price_per_bf = float(price_input)
+except:
+    price_per_bf = 0.0
+
+# Load previous JSON
 st.sidebar.header("📂 Load Previous Plan")
 uploaded_json = st.sidebar.file_uploader("Upload saved plan (.json)", type=["json"])
 
-# Use uploaded plan or show default editors
+# UI: inputs or load
 if uploaded_json:
     cut_plan, leftovers, boards_df, required_df = load_plan_from_json(uploaded_json.read())
     st.success("✅ Loaded previous plan!")
@@ -215,6 +234,29 @@ else:
 if st.button("🧠 Optimize Cut Plan"):
     expanded_boards = expand_boards_by_quantity(boards_df)
     cut_plan, leftovers = fit_pieces_to_boards(expanded_boards, required_df, kerf)
+
+    # Board feet + cost
+    required_bf = 0
+    for _, row in required_df.iterrows():
+        length = parse_measurement(row.get("Length"))
+        width = parse_measurement(row.get("Width"))
+        qty = int(parse_measurement(row.get("Quantity", 1)))
+        if length and width:
+            required_bf += calculate_board_feet(length, width, qty, board_thickness)
+
+    available_bf = 0
+    for _, row in boards_df.iterrows():
+        length = parse_measurement(row.get("Length"))
+        width = parse_measurement(row.get("Width"))
+        qty = int(parse_measurement(row.get("Quantity", 1)))
+        if length and width:
+            available_bf += calculate_board_feet(length, width, qty, board_thickness)
+
+    total_cost = required_bf * price_per_bf
+
+    st.info(f"📏 **Total Required Board Feet:** {required_bf:.2f} bf")
+    st.info(f"📐 **Total Available Board Feet:** {available_bf:.2f} bf")
+    st.success(f"💰 **Estimated Material Cost:** ${total_cost:.2f}")
 
     st.subheader("📋 Cut Plan Preview")
     for board in cut_plan:
@@ -241,6 +283,7 @@ if st.button("🧠 Optimize Cut Plan"):
         plt.gca().set_aspect('equal', adjustable='box')
         st.pyplot(fig)
 
+    # Downloads
     pdf_bytes = generate_pdf(cut_plan)
     st.download_button("📄 Download PDF", data=pdf_bytes, file_name="cut_plan.pdf", mime="application/pdf")
 
