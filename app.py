@@ -190,3 +190,4 @@ def generate_pdf(cut_plan, leftovers=None):
             plt.close(fig)
     buffer.seek(0)
     return buffer
+
