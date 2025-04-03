@@ -61,38 +61,41 @@ def expand_boards_by_quantity(boards_df):
             expanded.append({'length': length, 'width': width})
     return expanded
 
+# --- Optimizing Packer ---
 def try_place_pieces(board, pieces, kerf):
+    free_rectangles = [{'x': 0, 'y': 0, 'length': board['length'], 'width': board['width']}]
     placements = []
     remaining = []
-    x_cursor = 0
-    y_cursor = 0
-    max_row_height = 0
 
     for piece in pieces:
         placed = False
-        for rotate in [False, True]:
-            p_length = piece['length']
-            p_width = piece['width']
-            if rotate:
-                p_length, p_width = p_width, p_length
-            if x_cursor + p_length + kerf > board['length']:
-                x_cursor = 0
-                y_cursor += max_row_height + kerf
-                max_row_height = 0
-            if y_cursor + p_width + kerf > board['width']:
-                continue
-            placements.append({
-                'piece': piece,
-                'x': x_cursor,
-                'y': y_cursor,
-                'length': p_length,
-                'width': p_width,
-                'rotated': rotate
-            })
-            x_cursor += p_length + kerf
-            max_row_height = max(max_row_height, p_width)
-            placed = True
-            break
+        for rect in free_rectangles:
+            for rotated in [False, True]:
+                p_length = piece['length'] + kerf
+                p_width = piece['width'] + kerf
+                if rotated:
+                    p_length, p_width = p_width, p_length
+                if p_length <= rect['length'] and p_width <= rect['width']:
+                    placements.append({
+                        'piece': piece,
+                        'x': rect['x'],
+                        'y': rect['y'],
+                        'length': p_length - kerf,
+                        'width': p_width - kerf,
+                        'rotated': rotated
+                    })
+
+                    # Subdivide remaining space
+                    new_rects = [
+                        {'x': rect['x'] + p_length, 'y': rect['y'], 'length': rect['length'] - p_length, 'width': p_width},
+                        {'x': rect['x'], 'y': rect['y'] + p_width, 'length': rect['length'], 'width': rect['width'] - p_width}
+                    ]
+                    free_rectangles.remove(rect)
+                    free_rectangles.extend([r for r in new_rects if r['length'] > 0 and r['width'] > 0])
+                    placed = True
+                    break
+            if placed:
+                break
         if not placed:
             remaining.append(piece)
     return placements, remaining
