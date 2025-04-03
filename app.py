@@ -218,13 +218,18 @@ st.subheader("Available Lumber")
 def default_board_df():
     return pd.DataFrame([{"Length": "96", "Width": "12", "Quantity": 1}])
 
-boards_df = st.data_editor(default_board_df(), num_rows="dynamic", use_container_width=True)
+boards_df = st.data_editor(
+    st.session_state.get('boards_df', default_board_df()),
+    num_rows="dynamic", use_container_width=True
+)
 
 st.subheader("Required Cuts")
 def default_cut_df():
     return pd.DataFrame([{"Length": "24", "Width": "6", "Quantity": 2}])
 
-required_df = st.data_editor(default_cut_df(), num_rows="dynamic", use_container_width=True)
+required_df = st.data_editor(
+    st.session_state.get('required_df', default_cut_df()),
+    num_rows="dynamic", use_container_width=True)
 
 if st.button("✂️ Optimize Cuts"):
     boards_list = expand_boards_by_quantity(boards_df)
