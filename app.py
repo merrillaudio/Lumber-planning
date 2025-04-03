@@ -139,23 +139,30 @@ def to_fraction_string(value):
 
 def generate_pdf(cut_plan, leftovers=None):
     buffer = io.BytesIO()
-    # Effective drawing area (in inches) within the PDF page
-    effective_width = 7.5
-    effective_height = 10.0
-
+    # Use letter-size pages (8.5" x 11")
+    page_width, page_height = 8.5, 11
     with PdfPages(buffer) as pdf:
         for board in cut_plan:
             b = board['board']
-            # Compute scale factor so that the board fits within the effective drawing area.
-            scale = min(effective_width / b['length'], effective_height / b['width'])
-            fig, ax = plt.subplots(figsize=(b['length'] * scale, b['width'] * scale))
+            # Create a fixed page-size figure
+            fig = plt.figure(figsize=(page_width, page_height))
+            # Create a GridSpec: top for drawing, bottom for a textual table
+            gs = fig.add_gridspec(2, 1, height_ratios=[3, 2], hspace=0.3)
+            
+            # ----- Top: Board Drawing -----
+            ax_draw = fig.add_subplot(gs[0])
             board_title = (
-                f"Board {board['board_id']} - {to_fraction_string(b['length'])}\" x "
-                f"{to_fraction_string(b['width'])}\""
+                f"Board {board['board_id']} - "
+                f"{to_fraction_string(b['length'])}\" x {to_fraction_string(b['width'])}\""
             )
-            ax.set_title(board_title)
-            ax.set_xlim(0, b['length'])
-            ax.set_ylim(0, b['width'])
+            ax_draw.set_title(board_title, fontsize=10)
+            ax_draw.set_xlim(0, b['length'])
+            ax_draw.set_ylim(0, b['width'])
+            ax_draw.set_xlabel("Inches", fontsize=8)
+            ax_draw.set_ylabel("Inches", fontsize=8)
+            ax_draw.set_aspect('equal', adjustable='box')
+            
+            # Draw each cut on the board
             for cut in board['cuts']:
                 rect = patches.Rectangle(
                     (cut['x'], cut['y']),
@@ -165,40 +172,58 @@ def generate_pdf(cut_plan, leftovers=None):
                     edgecolor='black',
                     facecolor='lightgrey'
                 )
-                ax.add_patch(rect)
-                # Use fraction formatting for piece dimensions
+                ax_draw.add_patch(rect)
                 piece_label = (
                     f"{to_fraction_string(cut['piece']['length'])}\" x "
                     f"{to_fraction_string(cut['piece']['width'])}\""
                 )
-                ax.text(
+                ax_draw.text(
                     cut['x'] + cut['length'] / 2,
                     cut['y'] + cut['width'] / 2,
                     piece_label,
                     ha='center', va='center', fontsize=8
                 )
-            plt.gca().set_aspect('equal', adjustable='box')
-            plt.xlabel("Inches")
-            plt.ylabel("Inches")
+            
+            # ----- Bottom: List of Cuts -----
+            ax_text = fig.add_subplot(gs[1])
+            ax_text.axis('off')
+            text_lines = []
+            header = f"{'Piece ID':<12} {'X':>6} {'Y':>6} {'Length':>8} {'Width':>8} {'Rotated':>8}"
+            text_lines.append(header)
+            text_lines.append("-" * len(header))
+            for cut in board['cuts']:
+                piece_id = cut['piece']['id']
+                x_str = to_fraction_string(cut['x'])
+                y_str = to_fraction_string(cut['y'])
+                length_str = to_fraction_string(cut['length'])
+                width_str = to_fraction_string(cut['width'])
+                rotated_str = "Yes" if cut.get('rotated', False) else "No"
+                line = f"{piece_id:<12} {x_str:>6} {y_str:>6} {length_str:>8} {width_str:>8} {rotated_str:>8}"
+                text_lines.append(line)
+            text_block = "\n".join(text_lines)
+            ax_text.text(0, 1, text_block, fontsize=8, family='monospace', va='top')
+            
             plt.tight_layout()
             pdf.savefig(fig)
             plt.close(fig)
-
+        
+        # Optionally, add an extra page for leftover pieces
         if leftovers:
-            # Create a page for leftovers with a standard letter size (or similar)
-            fig, ax = plt.subplots(figsize=(8.5, 11))
+            fig, ax = plt.subplots(figsize=(page_width, page_height))
             ax.axis('off')
-            ax.set_title("Suggested Additional Pieces")
-            y = 1.0
-            ax.text(0, y, "The following pieces could not be placed:", fontsize=12, ha='left')
-            y -= 0.1
+            ax.set_title("Leftover Pieces", fontsize=10)
+            text_lines = []
+            header = f"{'Length':>8} {'Width':>8}"
+            text_lines.append(header)
+            text_lines.append("-" * len(header))
             for piece in leftovers:
-                piece_text = (
-                    f"- {to_fraction_string(piece['length'])}\" x "
-                    f"{to_fraction_string(piece['width'])}\""
-                )
-                ax.text(0, y, piece_text, fontsize=10, ha='left')
-                y -= 0.05
+                length_str = to_fraction_string(piece['length'])
+                width_str = to_fraction_string(piece['width'])
+                line = f"{length_str:>8} {width_str:>8}"
+                text_lines.append(line)
+            text_block = "\n".join(text_lines)
+            ax.text(0, 1, text_block, fontsize=8, family='monospace', va='top')
+            plt.tight_layout()
             pdf.savefig(fig)
             plt.close(fig)
     buffer.seek(0)
