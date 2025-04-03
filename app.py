@@ -10,17 +10,29 @@ from fractions import Fraction
 
 # ---- Helper Functions ----
 def parse_measurement(value):
+    """
+    Parses the measurement input which could be in inches or feet (with or without fractions).
+    If the input includes 'ft', it will convert to inches (12 inches = 1 foot).
+    """
     if isinstance(value, (int, float)):
         return float(value)
+    
     try:
-        parts = str(value).strip().split()
-        if len(parts) == 2:
+        # Handling the case where the value is in feet (e.g., "5'6\"")
+        value = str(value).strip()
+        if 'ft' in value or 'ft.' in value:
+            feet, inches = value.split('ft')
+            feet = float(feet.strip()) if feet.strip() else 0
+            inches = float(inches.strip().replace('"', '').strip()) if inches.strip() else 0
+            return feet * 12 + inches  # Convert feet to inches
+        elif '"' in value:  # e.g., "24 1/2"
+            parts = value.split()
             whole = float(parts[0])
-            frac = float(Fraction(parts[1]))
+            frac = float(Fraction(parts[1])) if len(parts) > 1 else 0
             return whole + frac
         else:
-            return float(Fraction(parts[0]))
-    except:
+            return float(Fraction(value))  # Handle simple fractions like "1/2"
+    except Exception as e:
         return None
 
 def calculate_board_feet(length, width, quantity, thickness=0.75):
@@ -139,10 +151,15 @@ def generate_pdf(cut_plan, leftovers=None):
                     facecolor='lightgrey'
                 )
                 ax.add_patch(rect)
+                
+                # Convert decimal to fraction for display
+                length_frac = str(Fraction(cut['length']).limit_denominator(1000))
+                width_frac = str(Fraction(cut['width']).limit_denominator(1000))
+                
                 ax.text(
                     cut['x'] + cut['length'] / 2,
                     cut['y'] + cut['width'] / 2,
-                    cut['piece']['id'],
+                    f"{cut['piece']['id']} ({length_frac}\" x {width_frac}\")",
                     ha='center', va='center', fontsize=8
                 )
             plt.gca().set_aspect('equal', adjustable='box')
@@ -159,7 +176,9 @@ def generate_pdf(cut_plan, leftovers=None):
             ax.text(0, y, "The following pieces could not be placed:", fontsize=12, ha='left')
             y -= 0.1
             for piece in leftovers:
-                ax.text(0, y, f"- {piece['length']:.2f}\" x {piece['width']:.2f}\"", fontsize=10, ha='left')
+                length_frac = str(Fraction(piece['length']).limit_denominator(1000))
+                width_frac = str(Fraction(piece['width']).limit_denominator(1000))
+                ax.text(0, y, f"- {length_frac}\" x {width_frac}\"", fontsize=10, ha='left')
                 y -= 0.05
             pdf.savefig(fig)
             plt.close(fig)
@@ -284,6 +303,3 @@ with col2:
         st.session_state.boards_df = boards_df
         st.session_state.required_df = required_df
         st.rerun()
-
-
-# --- rest of your app remains unchanged (fit, UI, etc.) ---
