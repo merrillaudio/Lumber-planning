@@ -120,13 +120,40 @@ def fit_pieces_to_boards(boards_list, required_df, kerf):
             break
     return cut_plan, pieces
 
+def to_fraction_string(value):
+    """Converts a float value to a string representing a fraction (or mixed number)."""
+    try:
+        frac = Fraction(value).limit_denominator(16)
+        # If the fraction is a whole number, return it without a denominator
+        if frac.denominator == 1:
+            return f"{frac.numerator}"
+        else:
+            whole = frac.numerator // frac.denominator
+            remainder = frac - whole
+            if whole > 0 and remainder:
+                return f"{whole} {remainder.numerator}/{remainder.denominator}"
+            else:
+                return f"{frac.numerator}/{frac.denominator}"
+    except Exception:
+        return str(value)
+
 def generate_pdf(cut_plan, leftovers=None):
     buffer = io.BytesIO()
+    # Effective drawing area (in inches) within the PDF page
+    effective_width = 7.5
+    effective_height = 10.0
+
     with PdfPages(buffer) as pdf:
         for board in cut_plan:
-            fig, ax = plt.subplots()
             b = board['board']
-            ax.set_title(f"Board {board['board_id']} - {b['length']}\" x {b['width']}\"")
+            # Compute scale factor so that the board fits within the effective drawing area.
+            scale = min(effective_width / b['length'], effective_height / b['width'])
+            fig, ax = plt.subplots(figsize=(b['length'] * scale, b['width'] * scale))
+            board_title = (
+                f"Board {board['board_id']} - {to_fraction_string(b['length'])}\" x "
+                f"{to_fraction_string(b['width'])}\""
+            )
+            ax.set_title(board_title)
             ax.set_xlim(0, b['length'])
             ax.set_ylim(0, b['width'])
             for cut in board['cuts']:
@@ -139,27 +166,38 @@ def generate_pdf(cut_plan, leftovers=None):
                     facecolor='lightgrey'
                 )
                 ax.add_patch(rect)
+                # Use fraction formatting for piece dimensions
+                piece_label = (
+                    f"{to_fraction_string(cut['piece']['length'])}\" x "
+                    f"{to_fraction_string(cut['piece']['width'])}\""
+                )
                 ax.text(
                     cut['x'] + cut['length'] / 2,
                     cut['y'] + cut['width'] / 2,
-                    cut['piece']['id'],
+                    piece_label,
                     ha='center', va='center', fontsize=8
                 )
             plt.gca().set_aspect('equal', adjustable='box')
             plt.xlabel("Inches")
             plt.ylabel("Inches")
+            plt.tight_layout()
             pdf.savefig(fig)
             plt.close(fig)
 
         if leftovers:
-            fig, ax = plt.subplots()
+            # Create a page for leftovers with a standard letter size (or similar)
+            fig, ax = plt.subplots(figsize=(8.5, 11))
             ax.axis('off')
             ax.set_title("Suggested Additional Pieces")
             y = 1.0
             ax.text(0, y, "The following pieces could not be placed:", fontsize=12, ha='left')
             y -= 0.1
             for piece in leftovers:
-                ax.text(0, y, f"- {piece['length']:.2f}\" x {piece['width']:.2f}\"", fontsize=10, ha='left')
+                piece_text = (
+                    f"- {to_fraction_string(piece['length'])}\" x "
+                    f"{to_fraction_string(piece['width'])}\""
+                )
+                ax.text(0, y, piece_text, fontsize=10, ha='left')
                 y -= 0.05
             pdf.savefig(fig)
             plt.close(fig)
