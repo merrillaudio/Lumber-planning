@@ -139,12 +139,12 @@ def to_fraction_string(value):
 def generate_pdf(cut_plan, leftovers=None):
     buffer = io.BytesIO()
     page_width, page_height = 8.5, 11  # Letter size
-    zoom_factor = 1.2  # Overall zoom factor for the page
+    zoom_factor = 1.0  # Overall zoom factor for the page
     # Additional drawing-specific settings for better legibility:
     drawing_title_font = 10 * zoom_factor       # Larger board title font
     drawing_label_font = 10 * zoom_factor       # Larger piece label font in drawing
     drawing_axis_label_font = 10 * zoom_factor  # Larger axis label fonts
-    drawing_linewidth = 2 * zoom_factor         # Thicker rectangle borders
+    drawing_linewidth = 3 * zoom_factor         # Thicker rectangle borders
 
     with PdfPages(buffer) as pdf:
         for board in cut_plan:
