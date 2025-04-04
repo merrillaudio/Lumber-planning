@@ -6,6 +6,7 @@ import pandas as pd
 import io
 import csv
 import json
+import yaml
 from fractions import Fraction
 
 # ---- Helper Functions ----
@@ -267,6 +268,23 @@ def load_plan_from_json(json_data):
         pd.DataFrame(data.get('required_input', [])),
     )
 
+def save_plan_to_yaml(plan, leftovers, boards_df, required_df):
+    data = {
+        'cut_plan': plan,
+        'leftovers': leftovers,
+        'boards_input': boards_df.to_dict(orient='records'),
+        'required_input': required_df.to_dict(orient='records')
+    }
+    return yaml.dump(data)
+
+def load_plan_from_yaml(yaml_data):
+    data = yaml.safe_load(yaml_data)
+    return (
+        data['cut_plan'],
+        data.get('leftovers', []),
+        pd.DataFrame(data.get('boards_input', [])),
+        pd.DataFrame(data.get('required_input', [])),
+    )
 
 # ---- Streamlit App UI ----
 st.set_page_config(page_title="Lumber Cut Optimizer", layout="wide")
