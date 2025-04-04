@@ -85,8 +85,6 @@ def try_place_pieces(board, pieces, kerf):
                         'width': p_width - kerf,
                         'rotated': rotated
                     })
-
-                    # Subdivide remaining space
                     new_rects = [
                         {'x': rect['x'] + p_length, 'y': rect['y'], 'length': rect['length'] - p_length, 'width': p_width},
                         {'x': rect['x'], 'y': rect['y'] + p_width, 'length': rect['length'], 'width': rect['width'] - p_width}
@@ -121,11 +119,11 @@ def fit_pieces_to_boards(boards_list, required_df, kerf):
             break
     return cut_plan, pieces
 
+# ---- PDF Generation ----
 def to_fraction_string(value):
     """Converts a float value to a string representing a fraction (or mixed number)."""
     try:
         frac = Fraction(value).limit_denominator(16)
-        # If the fraction is a whole number, return it without a denominator
         if frac.denominator == 1:
             return f"{frac.numerator}"
         else:
@@ -140,17 +138,14 @@ def to_fraction_string(value):
 
 def generate_pdf(cut_plan, leftovers=None):
     buffer = io.BytesIO()
-    # Use letter-size pages (8.5" x 11")
-    page_width, page_height = 8.5, 11
+    page_width, page_height = 8.5, 11  # letter size
     with PdfPages(buffer) as pdf:
         for board in cut_plan:
             b = board['board']
-            # Create a fixed page-size figure
             fig = plt.figure(figsize=(page_width, page_height))
-            # Create a GridSpec: top for drawing, bottom for a textual table
             gs = fig.add_gridspec(2, 1, height_ratios=[3, 2], hspace=0.3)
             
-            # ----- Top: Board Drawing -----
+            # Top: Board Drawing
             ax_draw = fig.add_subplot(gs[0])
             board_title = (
                 f"Board {board['board_id']} - "
@@ -162,8 +157,6 @@ def generate_pdf(cut_plan, leftovers=None):
             ax_draw.set_xlabel("Inches", fontsize=8)
             ax_draw.set_ylabel("Inches", fontsize=8)
             ax_draw.set_aspect('equal', adjustable='box')
-            
-            # Draw each cut on the board
             for cut in board['cuts']:
                 rect = patches.Rectangle(
                     (cut['x'], cut['y']),
@@ -185,7 +178,7 @@ def generate_pdf(cut_plan, leftovers=None):
                     ha='center', va='center', fontsize=8
                 )
             
-            # ----- Bottom: List of Cuts -----
+            # Bottom: List of Cuts
             ax_text = fig.add_subplot(gs[1])
             ax_text.axis('off')
             text_lines = []
@@ -203,12 +196,10 @@ def generate_pdf(cut_plan, leftovers=None):
                 text_lines.append(line)
             text_block = "\n".join(text_lines)
             ax_text.text(0, 1, text_block, fontsize=8, family='monospace', va='top')
-            
             plt.tight_layout()
             pdf.savefig(fig)
             plt.close(fig)
         
-        # Optionally, add an extra page for leftover pieces
         if leftovers:
             fig, ax = plt.subplots(figsize=(page_width, page_height))
             ax.axis('off')
@@ -248,8 +239,7 @@ def generate_csv(cut_plan):
     output.seek(0)
     return output.getvalue()
 
-
-# ---- Streamlit App UI ----
+# ---- Plan Persistence Functions ----
 def save_plan_to_json(plan, leftovers, boards_df, required_df):
     data = {
         'cut_plan': plan,
@@ -265,7 +255,7 @@ def load_plan_from_json(json_data):
         data['cut_plan'],
         data.get('leftovers', []),
         pd.DataFrame(data.get('boards_input', [])),
-        pd.DataFrame(data.get('required_input', [])),
+        pd.DataFrame(data.get('required_input', []))
     )
 
 def save_plan_to_yaml(plan, leftovers, boards_df, required_df):
@@ -283,22 +273,28 @@ def load_plan_from_yaml(yaml_data):
         data['cut_plan'],
         data.get('leftovers', []),
         pd.DataFrame(data.get('boards_input', [])),
-        pd.DataFrame(data.get('required_input', [])),
+        pd.DataFrame(data.get('required_input', []))
     )
 
 # ---- Streamlit App UI ----
 st.set_page_config(page_title="Lumber Cut Optimizer", layout="wide")
 st.title("📐 Lumber Cut Optimizer")
 
+# Sidebar: Cut Settings and Plan Persistence Options
 st.sidebar.header("Cut Settings")
 kerf = st.sidebar.number_input("Kerf Size (inches)", value=0.125, step=0.001, format="%.3f")
 thickness = st.sidebar.number_input("Board Thickness (inches)", value=0.75, step=0.01)
 cost_per_bf = st.sidebar.number_input("Cost per Board Foot ($)", value=5.00, step=0.01)
 
+st.sidebar.header("Plan Persistence Options")
+file_format = st.sidebar.radio("Select File Format", options=["JSON", "YAML"])
+save_plan_button = st.sidebar.button("Save Plan")
+load_file = st.sidebar.file_uploader("Load Plan File", type=["json", "yaml", "yml"])
+
+# Main UI: Available Lumber and Required Cuts
 st.subheader("Available Lumber")
 def default_board_df():
     return pd.DataFrame([{"Length": "96", "Width": "12", "Quantity": 1}])
-
 boards_df = st.data_editor(
     st.session_state.get('boards_df', default_board_df()),
     num_rows="dynamic", use_container_width=True
@@ -307,7 +303,6 @@ boards_df = st.data_editor(
 st.subheader("Required Cuts")
 def default_cut_df():
     return pd.DataFrame([{"Length": "24", "Width": "6", "Quantity": 2}])
-
 required_df = st.data_editor(
     st.session_state.get('required_df', default_cut_df()),
     num_rows="dynamic", use_container_width=True)
@@ -315,20 +310,16 @@ required_df = st.data_editor(
 if st.button("✂️ Optimize Cuts"):
     boards_list = expand_boards_by_quantity(boards_df)
     cut_plan, leftovers = fit_pieces_to_boards(boards_list, required_df, kerf)
-
     st.session_state.cut_plan = cut_plan
     st.session_state.leftovers = leftovers
     st.session_state.boards_df = boards_df
     st.session_state.required_df = required_df
 
-    boards_list = expand_boards_by_quantity(boards_df)
-    cut_plan, leftovers = fit_pieces_to_boards(boards_list, required_df, kerf)
-
     total_bf = sum(
-        calculate_board_feet(b['board']['length'], b['board']['width'], 1, thickness) for b in cut_plan
+        calculate_board_feet(b['board']['length'], b['board']['width'], 1, thickness)
+        for b in cut_plan
     )
     total_cost = total_bf * cost_per_bf
-
     st.success(f"Optimization complete! 🧮 Total board feet: {total_bf:.2f}, Estimated Cost: ${total_cost:.2f}")
 
     csv_data = generate_csv(cut_plan)
@@ -336,35 +327,36 @@ if st.button("✂️ Optimize Cuts"):
 
     st.download_button("📄 Download CSV", csv_data, file_name="cut_plan.csv", mime="text/csv")
     st.download_button("📄 Download PDF", pdf_data, file_name="cut_plan.pdf")
-
     if leftovers:
         st.warning("Some pieces could not be placed. Check the PDF for suggestions.")
 
-st.subheader("💾 Save or Load Plan")
-
-col1, col2 = st.columns(2)
-
-with col1:
-    if 'cut_plan' in st.session_state and st.button("💾 Save Plan as JSON"):
-        saved_json = save_plan_to_json(
+# Sidebar: Save/Load Plan Actions
+if save_plan_button and 'cut_plan' in st.session_state:
+    if file_format == "JSON":
+        saved_data = save_plan_to_json(
             st.session_state.cut_plan,
             st.session_state.leftovers,
             st.session_state.boards_df,
             st.session_state.required_df
         )
-        st.download_button("📥 Download JSON", saved_json, file_name="cut_plan.json", mime="application/json")
+        st.sidebar.download_button("Download JSON", saved_data, file_name="cut_plan.json", mime="application/json")
+    else:
+        saved_data = save_plan_to_yaml(
+            st.session_state.cut_plan,
+            st.session_state.leftovers,
+            st.session_state.boards_df,
+            st.session_state.required_df
+        )
+        st.sidebar.download_button("Download YAML", saved_data, file_name="cut_plan.yaml", mime="text/yaml")
 
-
-with col2:
-    uploaded_file = st.file_uploader("📤 Load Plan from JSON", type=["json"])
-    if uploaded_file:
-        content = uploaded_file.read().decode("utf-8")
-        cut_plan, leftovers, boards_df, required_df = load_plan_from_json(content)
-        st.session_state.cut_plan = cut_plan
-        st.session_state.leftovers = leftovers
-        st.session_state.boards_df = boards_df
-        st.session_state.required_df = required_df
-        st.rerun()
-
-
-# --- rest of your app remains unchanged (fit, UI, etc.) ---
+if load_file:
+    file_content = load_file.read().decode("utf-8")
+    if load_file.name.endswith(".json"):
+        cut_plan, leftovers, boards_df, required_df = load_plan_from_json(file_content)
+    else:
+        cut_plan, leftovers, boards_df, required_df = load_plan_from_yaml(file_content)
+    st.session_state.cut_plan = cut_plan
+    st.session_state.leftovers = leftovers
+    st.session_state.boards_df = boards_df
+    st.session_state.required_df = required_df
+    st.experimental_rerun()
