@@ -161,7 +161,7 @@ def generate_pdf(cut_plan, leftovers=None):
             )
             ax_draw.set_title(board_title, fontsize=drawing_title_font * drawing_zoom)
             ax_draw.set_xlim(0, b['length'])
-            ax_draw.set_ylim(0, b['width'])
+            ax_draw.set_ylim(1, b['width'])
             ax_draw.set_xlabel("Inches", fontsize=drawing_axis_font * drawing_zoom)
             ax_draw.set_ylabel("Inches", fontsize=drawing_axis_font * drawing_zoom)
             ax_draw.set_aspect('equal', adjustable='box')
