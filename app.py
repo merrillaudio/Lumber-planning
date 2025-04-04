@@ -360,7 +360,7 @@ if load_file:
     st.session_state.boards_df = boards_df
     st.session_state.required_df = required_df
     if hasattr(st, 'experimental_rerun'):
-    st.experimental_rerun()
+        st.experimental_rerun()
     else:
-    st.write("Please manually refresh the page to see the loaded plan.")
+        st.write("Please manually refresh the page to see the loaded plan.")
 
