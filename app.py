@@ -139,12 +139,17 @@ def to_fraction_string(value):
 def generate_pdf(cut_plan, leftovers=None):
     buffer = io.BytesIO()
     page_width, page_height = 8.5, 11  # Letter size
-    zoom_factor = 1.2  # 120% zoom
+    zoom_factor = 1.2  # Overall zoom factor for the page
+    # Additional drawing-specific settings for better legibility:
+    drawing_title_font = 14 * zoom_factor       # Larger board title font
+    drawing_label_font = 12 * zoom_factor       # Larger piece label font in drawing
+    drawing_axis_label_font = 12 * zoom_factor  # Larger axis label fonts
+    drawing_linewidth = 2 * zoom_factor         # Thicker rectangle borders
+
     with PdfPages(buffer) as pdf:
         for board in cut_plan:
             b = board['board']
             fig = plt.figure(figsize=(page_width, page_height))
-            # Allocate more space for the board drawing (80% of the page)
             gs = fig.add_gridspec(2, 1, height_ratios=[4, 1], hspace=0.3)
             
             # ----- Top: Board Drawing -----
@@ -153,21 +158,19 @@ def generate_pdf(cut_plan, leftovers=None):
                 f"Board {board['board_id']} - "
                 f"{to_fraction_string(b['length'])}\" x {to_fraction_string(b['width'])}\""
             )
-            ax_draw.set_title(board_title, fontsize=10 * zoom_factor)
-            # Show the entire board, but with larger rendering
+            ax_draw.set_title(board_title, fontsize=drawing_title_font)
             ax_draw.set_xlim(0, b['length'])
             ax_draw.set_ylim(0, b['width'])
-            ax_draw.set_xlabel("Inches", fontsize=8 * zoom_factor)
-            ax_draw.set_ylabel("Inches", fontsize=8 * zoom_factor)
+            ax_draw.set_xlabel("Inches", fontsize=drawing_axis_label_font)
+            ax_draw.set_ylabel("Inches", fontsize=drawing_axis_label_font)
             ax_draw.set_aspect('equal', adjustable='box')
             
-            # Draw each cut with thicker lines and larger labels
             for cut in board['cuts']:
                 rect = patches.Rectangle(
                     (cut['x'], cut['y']),
                     cut['length'],
                     cut['width'],
-                    linewidth=1.5 * zoom_factor,  # thicker lines
+                    linewidth=drawing_linewidth,
                     edgecolor='black',
                     facecolor='lightgrey'
                 )
@@ -180,7 +183,7 @@ def generate_pdf(cut_plan, leftovers=None):
                     cut['x'] + cut['length'] / 2,
                     cut['y'] + cut['width'] / 2,
                     piece_label,
-                    ha='center', va='center', fontsize=8 * zoom_factor
+                    ha='center', va='center', fontsize=drawing_label_font
                 )
             
             # ----- Bottom: List of Cuts -----
