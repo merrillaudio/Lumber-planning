@@ -150,7 +150,7 @@ def generate_pdf(cut_plan, leftovers=None):
             b = board['board']
             # Use a 5:1 ratio to allocate less vertical space to the drawing
             fig = plt.figure(figsize=(page_width, page_height))
-            gs = fig.add_gridspec(2, 1, height_ratios=[2, 1], hspace=0.3)
+            gs = fig.add_gridspec(2, 1, height_ratios=[15, 1], hspace=0.3)
             
             # ----- Top: Board Drawing -----
             ax_draw = fig.add_subplot(gs[0])
