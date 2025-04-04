@@ -139,20 +139,18 @@ def to_fraction_string(value):
 def generate_pdf(cut_plan, leftovers=None):
     buffer = io.BytesIO()
     page_width, page_height = 8.5, 11  # Letter size
-    # Drawing-specific settings (adjusted for legibility):
-    drawing_title_font = 20     # Increased board title font size
-    drawing_axis_font = 18      # Increased axis label font size
-    drawing_piece_font = 16     # Increased piece label font size
-    drawing_linewidth = 0.8     # Reduced border thickness so lines don't overwhelm the drawing
+    # Drawing-specific settings (revised for better balance):
+    drawing_title_font = 16     # Reduced board title font size
+    drawing_axis_font = 12      # Reduced axis label font size
+    drawing_piece_font = 10     # Reduced piece label font size
+    drawing_linewidth = 1.0     # Border thickness for rectangles
 
     with PdfPages(buffer) as pdf:
         for board in cut_plan:
             b = board['board']
-            # Create a figure with two rows:
-            # - Top row: Board drawing (more space)
-            # - Bottom row: Cut list (less space)
+            # Use a 5:1 ratio to allocate less vertical space to the drawing
             fig = plt.figure(figsize=(page_width, page_height))
-            gs = fig.add_gridspec(2, 1, height_ratios=[7, 1], hspace=0.3)
+            gs = fig.add_gridspec(2, 1, height_ratios=[5, 1], hspace=0.3)
             
             # ----- Top: Board Drawing -----
             ax_draw = fig.add_subplot(gs[0])
@@ -161,13 +159,14 @@ def generate_pdf(cut_plan, leftovers=None):
                 f"{to_fraction_string(b['length'])}\" x {to_fraction_string(b['width'])}\""
             )
             ax_draw.set_title(board_title, fontsize=drawing_title_font)
+            # Set the limits exactly to the board dimensions
             ax_draw.set_xlim(0, b['length'])
             ax_draw.set_ylim(0, b['width'])
             ax_draw.set_xlabel("Inches", fontsize=drawing_axis_font)
             ax_draw.set_ylabel("Inches", fontsize=drawing_axis_font)
             ax_draw.set_aspect('equal', adjustable='box')
             
-            # Draw each cut piece with the adjusted settings
+            # Draw each cut piece
             for cut in board['cuts']:
                 rect = patches.Rectangle(
                     (cut['x'], cut['y']),
@@ -213,7 +212,7 @@ def generate_pdf(cut_plan, leftovers=None):
             pdf.savefig(fig)
             plt.close(fig)
         
-        # If there are leftover pieces, add an extra page for them.
+        # Add an extra page for leftover pieces if any exist.
         if leftovers:
             fig, ax = plt.subplots(figsize=(page_width, page_height))
             ax.axis('off')
