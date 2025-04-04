@@ -139,18 +139,19 @@ def to_fraction_string(value):
 def generate_pdf(cut_plan, leftovers=None):
     buffer = io.BytesIO()
     page_width, page_height = 8.5, 11  # Letter size
-    zoom_factor = 1.0  # Overall zoom factor for the page
-    # Additional drawing-specific settings for better legibility:
-    drawing_title_font = 10 * zoom_factor       # Larger board title font
-    drawing_label_font = 10 * zoom_factor       # Larger piece label font in drawing
-    drawing_axis_label_font = 10 * zoom_factor  # Larger axis label fonts
-    drawing_linewidth = 3 * zoom_factor         # Thicker rectangle borders
+    # Drawing-specific settings:
+    drawing_zoom = 1.2          # Overall multiplier for drawing font sizes
+    drawing_title_font = 16     # Base board title font size
+    drawing_axis_font = 14      # Base axis label font size
+    drawing_piece_font = 12     # Base piece label font size in the drawing
+    drawing_linewidth = 1.0     # Thinner rectangle borders
 
     with PdfPages(buffer) as pdf:
         for board in cut_plan:
             b = board['board']
+            # Create a figure with two rows: the top for the drawing and the bottom for the cut list.
             fig = plt.figure(figsize=(page_width, page_height))
-            gs = fig.add_gridspec(2, 1, height_ratios=[4, 1], hspace=0.3)
+            gs = fig.add_gridspec(2, 1, height_ratios=[5, 1], hspace=0.3)
             
             # ----- Top: Board Drawing -----
             ax_draw = fig.add_subplot(gs[0])
@@ -158,14 +159,15 @@ def generate_pdf(cut_plan, leftovers=None):
                 f"Board {board['board_id']} - "
                 f"{to_fraction_string(b['length'])}\" x {to_fraction_string(b['width'])}\""
             )
-            ax_draw.set_title(board_title, fontsize=drawing_title_font)
+            ax_draw.set_title(board_title, fontsize=drawing_title_font * drawing_zoom)
             ax_draw.set_xlim(0, b['length'])
             ax_draw.set_ylim(0, b['width'])
-            ax_draw.set_xlabel("Inches", fontsize=drawing_axis_label_font)
-            ax_draw.set_ylabel("Inches", fontsize=drawing_axis_label_font)
+            ax_draw.set_xlabel("Inches", fontsize=drawing_axis_font * drawing_zoom)
+            ax_draw.set_ylabel("Inches", fontsize=drawing_axis_font * drawing_zoom)
             ax_draw.set_aspect('equal', adjustable='box')
             
             for cut in board['cuts']:
+                # Draw the cut rectangle with a thinner border
                 rect = patches.Rectangle(
                     (cut['x'], cut['y']),
                     cut['length'],
@@ -175,6 +177,7 @@ def generate_pdf(cut_plan, leftovers=None):
                     facecolor='lightgrey'
                 )
                 ax_draw.add_patch(rect)
+                # Place the piece label in the center of the rectangle
                 piece_label = (
                     f"{to_fraction_string(cut['piece']['length'])}\" x "
                     f"{to_fraction_string(cut['piece']['width'])}\""
@@ -183,7 +186,7 @@ def generate_pdf(cut_plan, leftovers=None):
                     cut['x'] + cut['length'] / 2,
                     cut['y'] + cut['width'] / 2,
                     piece_label,
-                    ha='center', va='center', fontsize=drawing_label_font
+                    ha='center', va='center', fontsize=drawing_piece_font * drawing_zoom
                 )
             
             # ----- Bottom: List of Cuts -----
@@ -203,16 +206,18 @@ def generate_pdf(cut_plan, leftovers=None):
                 line = f"{piece_id:<12} {x_str:>6} {y_str:>6} {length_str:>8} {width_str:>8} {rotated_str:>8}"
                 text_lines.append(line)
             text_block = "\n".join(text_lines)
-            ax_text.text(0, 1, text_block, fontsize=8 * zoom_factor, family='monospace', va='top')
+            # Use a fixed font size for the cut list for legibility
+            ax_text.text(0, 1, text_block, fontsize=8, family='monospace', va='top')
             
             plt.tight_layout()
             pdf.savefig(fig)
             plt.close(fig)
         
+        # Add an extra page for leftover pieces if any exist.
         if leftovers:
             fig, ax = plt.subplots(figsize=(page_width, page_height))
             ax.axis('off')
-            ax.set_title("Leftover Pieces", fontsize=10 * zoom_factor)
+            ax.set_title("Leftover Pieces", fontsize=10)
             text_lines = []
             header = f"{'Length':>8} {'Width':>8}"
             text_lines.append(header)
@@ -223,7 +228,7 @@ def generate_pdf(cut_plan, leftovers=None):
                 line = f"{length_str:>8} {width_str:>8}"
                 text_lines.append(line)
             text_block = "\n".join(text_lines)
-            ax.text(0, 1, text_block, fontsize=8 * zoom_factor, family='monospace', va='top')
+            ax.text(0, 1, text_block, fontsize=8, family='monospace', va='top')
             plt.tight_layout()
             pdf.savefig(fig)
             plt.close(fig)
