@@ -140,7 +140,7 @@ def generate_pdf(cut_plan, leftovers=None):
     buffer = io.BytesIO()
     page_width, page_height = 8.5, 11  # Letter size
     # Drawing-specific settings:
-    drawing_zoom = 0.8          # Overall multiplier for drawing font sizes
+    drawing_zoom = 1.0          # Overall multiplier for drawing font sizes
     drawing_title_font = 16     # Base board title font size
     drawing_axis_font = 14      # Base axis label font size
     drawing_piece_font = 9     # Base piece label font size in the drawing
@@ -160,7 +160,7 @@ def generate_pdf(cut_plan, leftovers=None):
                 f"{to_fraction_string(b['length'])}\" x {to_fraction_string(b['width'])}\""
             )
             ax_draw.set_title(board_title, fontsize=drawing_title_font * drawing_zoom)
-            ax_draw.set_xlim(0, b['length'])
+            ax_draw.set_xlim(3, b['length'])
             ax_draw.set_ylim(1, b['width'])
             ax_draw.set_xlabel("Inches", fontsize=drawing_axis_font * drawing_zoom)
             ax_draw.set_ylabel("Inches", fontsize=drawing_axis_font * drawing_zoom)
