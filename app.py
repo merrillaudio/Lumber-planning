@@ -140,10 +140,10 @@ def generate_pdf(cut_plan, leftovers=None):
     buffer = io.BytesIO()
     page_width, page_height = 8.5, 11  # Letter size
     # Drawing-specific settings:
-    drawing_zoom = 1.2          # Overall multiplier for drawing font sizes
+    drawing_zoom = 0.8          # Overall multiplier for drawing font sizes
     drawing_title_font = 16     # Base board title font size
     drawing_axis_font = 14      # Base axis label font size
-    drawing_piece_font = 12     # Base piece label font size in the drawing
+    drawing_piece_font = 9     # Base piece label font size in the drawing
     drawing_linewidth = 1.0     # Thinner rectangle borders
 
     with PdfPages(buffer) as pdf:
