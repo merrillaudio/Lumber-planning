@@ -138,31 +138,36 @@ def to_fraction_string(value):
 
 def generate_pdf(cut_plan, leftovers=None):
     buffer = io.BytesIO()
-    page_width, page_height = 8.5, 11  # letter size
+    page_width, page_height = 8.5, 11  # Letter size
+    zoom_factor = 1.2  # 120% zoom
     with PdfPages(buffer) as pdf:
         for board in cut_plan:
             b = board['board']
             fig = plt.figure(figsize=(page_width, page_height))
-            gs = fig.add_gridspec(2, 1, height_ratios=[3, 2], hspace=0.3)
+            # Allocate more space for the board drawing (80% of the page)
+            gs = fig.add_gridspec(2, 1, height_ratios=[4, 1], hspace=0.3)
             
-            # Top: Board Drawing
+            # ----- Top: Board Drawing -----
             ax_draw = fig.add_subplot(gs[0])
             board_title = (
                 f"Board {board['board_id']} - "
                 f"{to_fraction_string(b['length'])}\" x {to_fraction_string(b['width'])}\""
             )
-            ax_draw.set_title(board_title, fontsize=10)
+            ax_draw.set_title(board_title, fontsize=10 * zoom_factor)
+            # Show the entire board, but with larger rendering
             ax_draw.set_xlim(0, b['length'])
             ax_draw.set_ylim(0, b['width'])
-            ax_draw.set_xlabel("Inches", fontsize=8)
-            ax_draw.set_ylabel("Inches", fontsize=8)
+            ax_draw.set_xlabel("Inches", fontsize=8 * zoom_factor)
+            ax_draw.set_ylabel("Inches", fontsize=8 * zoom_factor)
             ax_draw.set_aspect('equal', adjustable='box')
+            
+            # Draw each cut with thicker lines and larger labels
             for cut in board['cuts']:
                 rect = patches.Rectangle(
                     (cut['x'], cut['y']),
                     cut['length'],
                     cut['width'],
-                    linewidth=1,
+                    linewidth=1.5 * zoom_factor,  # thicker lines
                     edgecolor='black',
                     facecolor='lightgrey'
                 )
@@ -175,10 +180,10 @@ def generate_pdf(cut_plan, leftovers=None):
                     cut['x'] + cut['length'] / 2,
                     cut['y'] + cut['width'] / 2,
                     piece_label,
-                    ha='center', va='center', fontsize=8
+                    ha='center', va='center', fontsize=8 * zoom_factor
                 )
             
-            # Bottom: List of Cuts
+            # ----- Bottom: List of Cuts -----
             ax_text = fig.add_subplot(gs[1])
             ax_text.axis('off')
             text_lines = []
@@ -195,7 +200,8 @@ def generate_pdf(cut_plan, leftovers=None):
                 line = f"{piece_id:<12} {x_str:>6} {y_str:>6} {length_str:>8} {width_str:>8} {rotated_str:>8}"
                 text_lines.append(line)
             text_block = "\n".join(text_lines)
-            ax_text.text(0, 1, text_block, fontsize=8, family='monospace', va='top')
+            ax_text.text(0, 1, text_block, fontsize=8 * zoom_factor, family='monospace', va='top')
+            
             plt.tight_layout()
             pdf.savefig(fig)
             plt.close(fig)
@@ -203,7 +209,7 @@ def generate_pdf(cut_plan, leftovers=None):
         if leftovers:
             fig, ax = plt.subplots(figsize=(page_width, page_height))
             ax.axis('off')
-            ax.set_title("Leftover Pieces", fontsize=10)
+            ax.set_title("Leftover Pieces", fontsize=10 * zoom_factor)
             text_lines = []
             header = f"{'Length':>8} {'Width':>8}"
             text_lines.append(header)
@@ -214,7 +220,7 @@ def generate_pdf(cut_plan, leftovers=None):
                 line = f"{length_str:>8} {width_str:>8}"
                 text_lines.append(line)
             text_block = "\n".join(text_lines)
-            ax.text(0, 1, text_block, fontsize=8, family='monospace', va='top')
+            ax.text(0, 1, text_block, fontsize=8 * zoom_factor, family='monospace', va='top')
             plt.tight_layout()
             pdf.savefig(fig)
             plt.close(fig)
