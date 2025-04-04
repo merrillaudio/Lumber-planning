@@ -140,10 +140,10 @@ def generate_pdf(cut_plan, leftovers=None):
     buffer = io.BytesIO()
     page_width, page_height = 8.5, 11  # Letter size
     # Drawing-specific settings (revised for better balance):
-    drawing_title_font = 16     # Reduced board title font size
-    drawing_axis_font = 12      # Reduced axis label font size
-    drawing_piece_font = 10     # Reduced piece label font size
-    drawing_linewidth = 1.0     # Border thickness for rectangles
+    drawing_title_font = 12    # Smaller title font
+    drawing_axis_font = 10     # Smaller axis labels
+    drawing_piece_font = 8     # Smaller piece labels
+    drawing_linewidth = 1.0    # (Keep unchanged or adjust as needed)
 
     with PdfPages(buffer) as pdf:
         for board in cut_plan:
@@ -158,7 +158,9 @@ def generate_pdf(cut_plan, leftovers=None):
                 f"Board {board['board_id']} - "
                 f"{to_fraction_string(b['length'])}\" x {to_fraction_string(b['width'])}\""
             )
-            ax_draw.set_title(board_title, fontsize=drawing_title_font)
+            ax_draw.set_title(board_title, fontsize=drawing_title_font, color='red')
+            ax_draw.set_xlabel("Inches", fontsize=drawing_axis_font, color='red')
+            ax_draw.set_ylabel("Inches", fontsize=drawing_axis_font, color='red')
             # Set the limits exactly to the board dimensions
             ax_draw.set_xlim(0, b['length'])
             ax_draw.set_ylim(0, b['width'])
@@ -186,7 +188,8 @@ def generate_pdf(cut_plan, leftovers=None):
                     cut['y'] + cut['width'] / 2,
                     piece_label,
                     ha='center', va='center',
-                    fontsize=drawing_piece_font
+                    fontsize=drawing_piece_font,
+                    color='red'
                 )
             
             # ----- Bottom: List of Cuts -----
