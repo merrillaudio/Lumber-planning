@@ -371,12 +371,11 @@ if load_file:
         cut_plan, leftovers, boards_df, required_df = load_plan_from_json(file_content)
     else:
         cut_plan, leftovers, boards_df, required_df = load_plan_from_yaml(file_content)
+
     st.session_state.cut_plan = cut_plan
     st.session_state.leftovers = leftovers
     st.session_state.boards_df = boards_df
     st.session_state.required_df = required_df
-    if hasattr(st, 'experimental_rerun'):
-        st.experimental_rerun()
-    else:
-        st.write("Please manually refresh the page to see the loaded plan.")
 
+    # Immediately rerun only after load
+    st.experimental_rerun()
