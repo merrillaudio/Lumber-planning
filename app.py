@@ -235,7 +235,7 @@ def generate_pdf(cut_plan, leftovers=None, job_title=""):
     return buffer
 
 # ---- Streamlit UI ----
-st.title("\ud83d\udcc0 Lumber Cut Optimizer")
+st.title("🪚 Lumber Cut Optimizer")
 
 job_title = st.text_input("Job Title", "My Woodworking Project")
 st.markdown(f"### Job Title: {job_title}")
