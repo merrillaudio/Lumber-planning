@@ -228,7 +228,6 @@ def generate_pdf(cut_plan, leftovers=None, job_title=""):
     return buffer
 
 # ---- Streamlit UI ----
-st.set_page_config(page_title="Lumber Cut Optimizer", layout="wide")
 st.title("📐 Lumber Cut Optimizer")
 
 job_title = st.text_input("Job Title", "My Woodworking Project")
