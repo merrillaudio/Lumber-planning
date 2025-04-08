@@ -209,18 +209,35 @@ def generate_pdf(cut_plan, leftovers=None, job_title=""):
 
         for board in cut_plan:
             b = board['board']
-            fig, ax = plt.subplots(figsize=(8.5, 11))
+            fig, (ax, ax_text) = plt.subplots(2, 1, figsize=(8.5, 11), gridspec_kw={'height_ratios': [4, 1]})
+
             ax.set_title(f"Board {board['board_id']} - {to_fraction_string(b['length'])}\" x {to_fraction_string(b['width'])}\"", fontsize=12)
             ax.set_xlim(0, b['length'])
             ax.set_ylim(0, b['width'])
             ax.set_aspect('equal')
+
             for cut in board['cuts']:
                 rect = patches.Rectangle((cut['x'], cut['y']), cut['length'], cut['width'], linewidth=1, edgecolor='black', facecolor='lightgrey')
                 ax.add_patch(rect)
                 label = f"{to_fraction_string(cut['piece']['length'])}\" x {to_fraction_string(cut['piece']['width'])}\""
                 ax.text(cut['x'] + cut['length']/2, cut['y'] + cut['width']/2, label, ha='center', va='center', fontsize=8, color='red')
+
+            ax_text.axis('off')
+            lines = [f"{'Piece ID':<12} {'X':>6} {'Y':>6} {'Length':>8} {'Width':>8} {'Rotated':>8}", "-" * 56]
+            for cut in board['cuts']:
+                piece_id = cut['piece']['id']
+                x = to_fraction_string(cut['x'])
+                y = to_fraction_string(cut['y'])
+                l = to_fraction_string(cut['length'])
+                w = to_fraction_string(cut['width'])
+                r = "Yes" if cut['rotated'] else "No"
+                lines.append(f"{piece_id:<12} {x:>6} {y:>6} {l:>8} {w:>8} {r:>8}")
+            ax_text.text(0, 1, "\n".join(lines), fontsize=10, family='monospace', va='top')
+
+            plt.tight_layout()
             pdf.savefig(fig)
             plt.close(fig)
+
         if leftovers:
             fig, ax = plt.subplots(figsize=(8.5, 11))
             ax.axis('off')
