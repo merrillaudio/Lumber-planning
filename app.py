@@ -235,7 +235,7 @@ def generate_pdf(cut_plan, leftovers=None, job_title=""):
     return buffer
 
 # ---- Streamlit UI ----
-st.title("🪚 Lumber Cut Optimizer")
+st.title("📐 Lumber Cut Optimizer")
 
 job_title = st.text_input("Job Title", "My Woodworking Project")
 st.markdown(f"### Job Title: {job_title}")
@@ -268,7 +268,7 @@ required_df = st.data_editor(
     num_rows="dynamic", use_container_width=True
 )
 
-if st.button("\u2702\ufe0f Optimize Cuts"):
+if st.button("✂️ Optimize Cuts"):
     boards_list = expand_boards_by_quantity(boards_df)
     cut_plan, leftovers = fit_pieces_to_boards(boards_list, required_df, kerf=kerf)
     st.session_state.cut_plan = cut_plan
@@ -281,13 +281,13 @@ if st.button("\u2702\ufe0f Optimize Cuts"):
         for b in cut_plan
     )
     total_cost = total_bf * cost_per_bf
-    st.success(f"Optimization complete! \ud83e\uddfe Total board feet: {total_bf:.2f}, Estimated Cost: ${total_cost:.2f}")
+    st.success(f"Optimization complete! 🧮 Total board feet: {total_bf:.2f}, Estimated Cost: ${total_cost:.2f}")
 
     csv_data = generate_csv(cut_plan)
     pdf_data = generate_pdf(cut_plan, leftovers, job_title=job_title)
 
-    st.download_button("\ud83d\udcc4 Download CSV", csv_data, file_name="cut_plan.csv", mime="text/csv")
-    st.download_button("\ud83d\udcc4 Download PDF", pdf_data, file_name="cut_plan.pdf")
+    st.download_button("📄 Download CSV", csv_data, file_name="cut_plan.csv", mime="text/csv")
+    st.download_button("📄 Download PDF", pdf_data, file_name="cut_plan.pdf")
     if leftovers:
         st.warning("Some pieces could not be placed. Check the PDF for suggestions.")
 
