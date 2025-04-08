@@ -226,6 +226,7 @@ def generate_pdf(cut_plan, leftovers=None, job_title=""):
     return buffer
 
 # ---- Streamlit UI ----
+import streamlit as st
 st.set_page_config(page_title="Lumber Cut Optimizer", layout="wide")
 st.title("📐 Lumber Cut Optimizer")
 
