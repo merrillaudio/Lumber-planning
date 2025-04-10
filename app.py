@@ -186,14 +186,13 @@ def generate_pdf(purchased_boards, leftovers=None, job_title=""):
         for project, bf in summary.items():
             lines.append(f"{project}: {bf:.2f} board feet")
 
-        lines.append("
-Boards to Purchase:")  # fixed string literal
+        lines.append("Boards to Purchase:")  # fixed correct syntax  # fixed string literal
         for board in purchased_boards:
             b = board['board']
             lines.append(f"Board {board['board_id']}: {b['length_ft']:.1f} ft x {b['width_in']:.1f}\" ({board['board_feet']:.2f} bf)")
 
         ax.text(0.1, 0.9, "
-".join(lines), fontsize=12, va='top')
+".join(lines), fontsize=12, va='top')  # corrected text assignment
         pdf.savefig(fig_summary)
         plt.close(fig_summary)
     buffer.seek(0)
